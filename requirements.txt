@@ -1,3 +1,11 @@
-flask
+flask~=3.0.3
 flask-smorest
 python-dotenv
+marshmallow~=3.21.3
+sqlalchemy~=2.0.30
+flask-sqlalchemy
+flask-jwt-extended
+passlib~=1.7.4
+PyJWT~=2.8.0
+redis
+flask-migrate
