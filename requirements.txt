@@ -10,3 +10,4 @@ PyJWT
 redis
 flask-migrate
 gunicorn
+psycopg2
