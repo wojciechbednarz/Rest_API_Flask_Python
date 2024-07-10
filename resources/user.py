@@ -1,30 +1,55 @@
+import os
+
 import jwt.algorithms
-from flask import jsonify
+import redis
+from dotenv import load_dotenv
+from flask import jsonify, current_app
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import IntegrityError
 from passlib.hash import pbkdf2_sha256
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, get_jwt, jwt_required
+from sqlalchemy import or_
+from rq import Queue
 
 from blocklist import add_token_to_blocklist
 from db import db
 from models import UserModel
-from schemas import UserSchema, MessageSchema
+from schemas import UserSchema, MessageSchema, UserRegisterSchema
 from datetime import timedelta
+from tasks import send_user_registration_email
 
 blp = Blueprint("Users", "users", description="Operations on users.")
+
+load_dotenv()
+
+connection = redis.from_url(
+    os.getenv("REDIS_URL")
+)
+
+queue = Queue("emails", connection=connection)
 
 
 @blp.route("/register")
 class UserRegister(MethodView):
-    @blp.arguments(UserSchema)
+    @blp.arguments(UserRegisterSchema)
     def post(self, user_data):
+        if UserModel.query.filter(
+                or_(
+                    UserModel.username == user_data["username"],
+                    UserModel.email == user_data["email"]
+                )
+        ).first():
+            abort(409, message='A user with that name or email already exists.')
         user = UserModel(username=user_data["username"],
+                         email=user_data["email"],
                          password=pbkdf2_sha256.hash(user_data["password"]))
 
         try:
             db.session.add(user)
             db.session.commit()
+
+            queue.enqueue(send_user_registration_email, user.email, user.username)
         except IntegrityError:
             abort(409, message="User with this username already exists.")
         username = user_data["username"]

@@ -18,6 +18,7 @@ from flask_migrate import Migrate
 
 def get_database_url():
     load_dotenv()
+
     DB_USERNAME = os.getenv('DB_USERNAME')
     DB_PASSWORD = os.getenv('DB_PASSWORD')
     DB_HOST = os.getenv('DB_HOST')
@@ -32,12 +33,14 @@ def get_database_url():
 def create_app(db_url=None):
     app = Flask(__name__)
     # database_url = get_database_url()
-    load_dotenv()
+
 
     @app.route("/reset", methods=['POST'])
     def reset():
         reset_db()
         return {'message': 'Database reset successful'}, 200
+
+    load_dotenv()
 
     app.config["PROPAGATE_EXCEPTIONS"] = True
     app.config["API_TITLE"] = "Stores REST API"
